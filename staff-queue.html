@@ -27,20 +27,53 @@ document.addEventListener('visibilitychange',()=>{if(current){load();loadSetting
 
 
 
+let reviewBusy=false;
+async function reviewOrder(id,decision){
+ if(reviewBusy)return;
+ const verb=decision==='accepted'?'accept':'reject';
+ if(!confirm('Are you sure you want to '+verb+' this website order?'+(decision==='accepted'?' It will enter the shared preparation queue.':'')))return;
+ let reason=null;
+ if(decision==='rejected'){reason=prompt('Reason for rejection (optional):','');if(reason===null)return}
+ reviewBusy=true;$('pendingStatus').textContent='Saving review…';
+ try{
+  const {error}=await db.rpc('review_website_order',{p_order_id:id,p_decision:decision,p_rejection_reason:reason});
+  if(error)throw error;
+  $('pendingStatus').textContent='Order '+decision+'.';
+  await Promise.all([loadPending(),load()]);
+ }catch(e){$('pendingStatus').textContent='Review failed: '+e.message}
+ finally{reviewBusy=false}
+}
 async function loadPending(){
  if(!current)return;
  const status=$('pendingStatus'),box=$('pendingOrders');
- const {data,error}=await db.from('website_orders').select('id,order_number,customer_name,items,total_amount,created_at').eq('status','pending_review').order('created_at',{ascending:true}).limit(100);
+ const {data,error}=await db.from('website_orders').select('id,order_number,customer_name,items,total_amount,created_at,payment_screenshot_path').eq('status','pending_review').order('created_at',{ascending:true}).limit(100);
  if(error){status.textContent='Unable to load pending orders: '+error.message;return}
  const orders=data||[];
  $('pendingCount').textContent='('+orders.length+(orders.length===100?'+':'')+')';
- status.textContent=orders.length?'Staff-only preview. Review actions are not enabled yet.':'No pending website orders.';
+ status.textContent=orders.length?'Review each order before it enters the preparation queue. Confirm payment in your bank account; a screenshot alone is not proof.':'No pending website orders.';
  box.replaceChildren();
  for(const order of orders){
   const card=document.createElement('div');card.className='ticket';
   const heading=document.createElement('strong');heading.textContent='Order #'+order.order_number+' — '+order.customer_name;card.append(heading);
-  const detail=document.createElement('p');detail.className='muted';detail.textContent='Total: SGD '+Number(order.total_amount).toFixed(2);card.append(detail);
-  const list=document.createElement('pre');list.style.cssText='white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;font-size:13px';list.textContent=JSON.stringify(order.items,null,2);card.append(list);box.append(card);
+  const detail=document.createElement('p');detail.className='muted';detail.textContent='Total: SGD '+Number(order.total_amount).toFixed(2)+' · '+new Date(order.created_at).toLocaleString();card.append(detail);
+  const list=document.createElement('pre');list.style.cssText='white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;font-size:13px';list.textContent=JSON.stringify(order.items,null,2);card.append(list);
+  if(order.payment_screenshot_path){
+   const view=document.createElement('button');view.type='button';view.className='secondary';view.textContent='View PayNow screenshot';
+   view.addEventListener('click',async()=>{
+    view.disabled=true;
+    const popup=window.open('about:blank','_blank');
+    const {data:link,error:linkError}=await db.storage.from('paynow-screenshots').createSignedUrl(order.payment_screenshot_path,60);
+    view.disabled=false;
+    if(linkError||!link){if(popup)popup.close();status.textContent='Cannot open screenshot: '+(linkError?.message||'Unknown error');return}
+    if(popup){popup.opener=null;popup.location.replace(link.signedUrl)}else{status.textContent='Pop-up blocked. Allow pop-ups to view the screenshot.'}
+   });
+   card.append(view);
+  }else{const warning=document.createElement('p');warning.className='muted';warning.textContent='No screenshot attached. Verify payment independently before accepting.';card.append(warning)}
+  const actions=document.createElement('div');actions.className='actions';
+  for(const [label,decision] of [['Accept order','accepted'],['Reject order','rejected']]){
+   const button=document.createElement('button');button.type='button';button.className=decision==='rejected'?'secondary':'';button.textContent=label;button.addEventListener('click',()=>reviewOrder(order.id,decision));actions.append(button)
+  }
+  card.append(actions);box.append(card);
  }
 }
 $('refreshPending').addEventListener('click',loadPending);
