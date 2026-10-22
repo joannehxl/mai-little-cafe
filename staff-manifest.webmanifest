@@ -1,0 +1,18 @@
+{
+  "name": "Mai Little Cafe Staff",
+  "short_name": "Mai Staff",
+  "description": "Staff queue dashboard for Mai Little Cafe",
+  "start_url": "./staff-queue.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#faf6ed",
+  "theme_color": "#513b31",
+  "icons": [
+    {
+      "src": "./assets/logo.jpeg",
+      "sizes": "any",
+      "type": "image/jpeg",
+      "purpose": "any"
+    }
+  ]
+}
