@@ -22,7 +22,7 @@ $('loginForm').addEventListener('submit',async e=>{e.preventDefault();$('loginBu
 $('logout').addEventListener('click',async()=>{await db.auth.signOut();showLogin();msg.textContent='Signed out.'});
 document.querySelectorAll('[data-cups]').forEach(b=>b.addEventListener('click',()=>add(Number(b.dataset.cups))));
 $('addCustom').addEventListener('click',()=>add(Number($('custom').value)));$('refresh').addEventListener('click',load);$('pace').addEventListener('change',saveSettings);$('rush').addEventListener('change',saveSettings);
-document.addEventListener('visibilitychange',()=>{if(!document.hidden&&current){load();loadSettings()}});setInterval(()=>{if(current&&!document.hidden){load();loadSettings()}},15000);
+document.addEventListener('visibilitychange',()=>{if(current){load();loadSettings()}});window.addEventListener('focus',()=>{if(current){load();loadSettings()}});setInterval(()=>{if(current){load();loadSettings()}},5000);
 await authenticate();
 })();
 </script></body></html>
