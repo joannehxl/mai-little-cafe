@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Mai Little Cafe — Staff Login</title><style>
+*{box-sizing:border-box}body{margin:0;background:#faf6ed;color:#49352e;font-family:system-ui,-apple-system,sans-serif}main{max-width:440px;margin:8vh auto;padding:22px}h1{font-size:27px;margin:8px 0}.muted{color:#826f63;font-size:14px;line-height:1.5}.panel{background:#fff;border:1px solid #e9ded1;border-radius:18px;padding:24px;margin:20px 0}label{display:block;margin:16px 0 6px;font-size:14px}input{width:100%;padding:13px;border:1px solid #d8c6b7;border-radius:10px;font:inherit}button{width:100%;padding:13px;border:0;border-radius:11px;background:#513b31;color:#fff;font:inherit;margin-top:20px}button:disabled{opacity:.5}#signed{display:none}#message{min-height:20px;font-size:14px;line-height:1.5}</style></head><body><main><div class="muted">mai little café.</div><h1>Staff sign in</h1><div class="muted">For authorised café team members only</div><div class="panel"><form id="form"><label for="email">Email</label><input id="email" type="email" autocomplete="username" required><label for="password">Password</label><input id="password" type="password" autocomplete="current-password" required><button id="submit" type="submit">Sign in</button></form><div id="signed"><strong>Signed in successfully</strong><p id="role"></p><p class="muted">Your staff account is verified. The shared order dashboard is not connected yet.</p><button id="logout">Sign out</button></div><p id="message" role="status" aria-live="polite"></p></div><p class="muted">Login test only. No live orders, payment verification, or printer integration. Never share your password.</p></main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+(async function(){
+const $=id=>document.getElementById(id),form=$('form'),signed=$('signed'),msg=$('message'),submit=$('submit');
+if(!window.supabase){msg.textContent='Could not load login service. Please refresh.';submit.disabled=true;return}
+const client=window.supabase.createClient('https://exfbjssyjlnhowzhfupi.supabase.co','sb_publishable_w9gKKsSln4uu8Ar2zdsNhA_ilyHsuJa');
+async function showSession(){
+const {data:{user},error}=await client.auth.getUser();
+if(error||!user){form.style.display='block';signed.style.display='none';return}
+const {data:member,error:memberError}=await client.from('staff_members').select('role').eq('user_id',user.id).maybeSingle();
+if(memberError||!member){await client.auth.signOut();form.style.display='block';signed.style.display='none';msg.textContent='This account is not authorised for staff access.';return}
+form.style.display='none';signed.style.display='block';$('role').textContent='Staff role: '+member.role;msg.textContent='';
+}
+form.addEventListener('submit',async event=>{
+event.preventDefault();submit.disabled=true;msg.textContent='Signing in…';
+try{const {error}=await client.auth.signInWithPassword({email:$('email').value.trim(),password:$('password').value});$('password').value='';if(error){msg.textContent='Sign-in failed. Check your credentials and email confirmation.';return}await showSession()}catch(e){msg.textContent='Connection error. Please try again.'}finally{submit.disabled=false}
+});
+$('logout').addEventListener('click',async()=>{await client.auth.signOut();form.style.display='block';signed.style.display='none';msg.textContent='Signed out.'});
+await showSession();
+})();
+</script></body></html>
