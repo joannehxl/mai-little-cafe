@@ -6,7 +6,7 @@
 (async function(){
 const $=id=>document.getElementById(id),form=$('form'),signed=$('signed'),msg=$('message'),submit=$('submit');
 if(!window.supabase){msg.textContent='Could not load login service. Please refresh.';submit.disabled=true;return}
-const client=window.supabase.createClient('https://exfbjssyjlnhowzhfupi.supabase.co','sb_publishable_w9gKKsSln4uu8Ar2zdsNhA_ilyHsuJa');
+const client=window.supabase.createClient('https://exfbjssyljnhowzhfupi.supabase.co','sb_publishable_w9gKKsSln4uu8Ar2zdsNhA_ilyHsuJa');
 async function showSession(){
 const {data:{user},error}=await client.auth.getUser();
 if(error||!user){form.style.display='block';signed.style.display='none';return}
